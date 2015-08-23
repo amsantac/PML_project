@@ -1,0 +1,224 @@
+---
+title: "Practical Machine Learning - Course Project"
+author: "A. Santacruz"
+date: "August 22, 2015"
+output: html_document
+---
+
+## Summary
+This analysis was conducted for _Motor Trend_, a magazine about the automobile industry. The relationship between a set of variables and miles per gallon (MPG) (outcome) for a collection of cars was explored as shown below. First an exploratory data analysis was conducted on the data. Then a number of regression models were evaluated to assess the relationship between cars features and MPG. Finally I evaluated whether an automatic or manual transmission is better for MPG and I quantified the MPG difference between automatic and manual transmissions. Results showed that a manual transmision is better than an automatic transmision for MPG. 
+
+## Exploratory data analysis
+
+First I read the data into R and removed variables that have NA's or are not complete:
+
+```{r, echo = FALSE, cache = TRUE}
+data1 <- read.csv("pml-training.csv")
+data2 <- data1[, c(!is.na(data1[1,]))]
+data2 <- data2[, c(!data2[1,] == "")]
+data2 <- data2[, -c(1,2,5,6)]
+```
+
+Then, given the large size of the data, I decided to compress the data using principal components analysis:
+
+```{r cache = TRUE}
+prComp <- prcomp(data2[, -ncol(data2)])
+library(knitr)
+kable(summary(prComp)$importance[,1:6])
+```
+
+According to the results, the first two components respond for almost all the variability. Then I proceeded to partition the data into a training set (60% of data) and a test data set, that will be splitted later for creating a validation data set.
+
+```{r cache = TRUE}
+set.seed(3330)
+library(caret)
+inTrain <- createDataPartition(y=data2$classe, p=0.6, list=FALSE)
+training <- data2[inTrain,]
+testing <- data2[-inTrain,]
+```
+
+For the classification of the data, I evaluated several methods including linear regression (`"lm"`), recursive partitioning (`"rpart"`), randomForests (`"rf"`) and ramdomForests with PCA preprocessing (`"pca"`).
+
+```{r cache = TRUE}
+#modFit_lm <- train(classe ~ ., method = "lm", data = training)
+#modFit_rp <- train(classe ~ ., method = "rpart", data = training)
+#modFit_rf <- train(classe ~ ., method = "rf", data = training)
+modFit_rf2 <- train(training$classe ~ ., method = "rf", preProcess = "pca", data = training)
+```
+
+For testing the models, I created a partition in the testing data set to obtain a test data set (50% of the data) and a validation data set.
+
+```{r cache = TRUE, eval = FALSE}
+inTest <- createDataPartition(y=testing$classe, p=0.5, list=FALSE)
+testing <- testing[inTest,]
+validation <- testing[-inTest,]
+```
+
+Then I evaluated the fit of each of the models by evaluating the `predict` function on the test data set. The confusion matrix was calculated to determine the accuracy of the models in order to compare among them and select the model with the highest accuracy. 
+
+```{r cache = TRUE, eval = FALSE}
+preds_lm <- predict(modFit_lm, newdata = testing)
+cf_lm <- confusionMatrix(testing$classe, predict(modFit_lm, testing))
+preds_rp <- predict(modFit_rp, newdata = testing)
+cf_rp <- confusionMatrix(testing$classe, predict(modFit_rp, testing))
+preds_rf <- predict(modFit_rf, newdata = testing)
+cf_rf <- confusionMatrix(testing$classe, predict(modFit_rf, testing))
+preds_rf2 <- predict(modFit_rp, newdata = testing)
+cf_rf2 <- confusionMatrix(testing$classe, predict(modFit_rf2, testing))
+```
+
+The models fitted using randomForests and randomForests with PCA preprocessing produced the highest accuracies. The first model had an accuracy of 99% on the test data set, while the second model had an accuracy of 86% (see below). Although the accuracy of the second randomForests model was lower than that of the first randomForest model, I preferred the randomForests model with PCA preprocessing over the other one in order to avoid a possible overfitting. The confusion matrix and the accuracy measures for the randomForests model with PCA preprocessing is shown below:  
+
+```{r cache = TRUE, echo = FALSE}
+confusionMatrix(testing$classe, predict(modFit_rf2, testing))
+```
+
+To assess the out of sample error and estimate the error with cross-validation I used the validation data set created previously. With the selected model, `modFit_rf2`
+
+
+system.time( modFit_rf <- train(classe ~ ., method = "rf", data = training))
+preds_rf <- predict(modFit_rf, newdata = testing)
+table(preds_rf, testing$classe)
+
+plot(modFit_rf$finalModel)
+text(modFit_rf$finalModel)
+```
+
+```{r cache = TRUE, eval = FALSE}
+preProc <- preProcess(training[, -ncol(data2)], method = "pca", pcaComp = 2)
+trainPC <- predict(preProc, training[, -ncol(data2)])
+modelFit <- train(training$classe ~ ., method="rf", data = trainPC)
+
+testPC <- predict(preProc,testing[, -ncol(data2)])
+confusionMatrix(testing$classe, predict(modelFit, testPC))
+
+
+modelFit2 <- train(training$classe ~ ., method = "rf", preProcess = "pca", data = training)
+confusionMatrix(testing$classe, predict(modelFit2, testing))
+```
+
+
+
+```{r, eval = FALSE}
+inTest <- createDataPartition(y=testing$classe, p=0.5, list=FALSE)
+testing <- testing[inTest,]
+validation <- testing[-inTest,]
+
+inValid <- createDataPartition(validation$classe, 10, p = 0.6)
+
+out <- list()
+
+validame <- function(){
+  
+  
+  
+}
+
+for (i in 1:length(validDS)){
+  
+  training <- validation[inValid[[i]],]
+  testing <- validation[-inValid[[i]],]
+  
+  modelFit3 <- train(training$classe ~ ., method = "rf", preProcess = "pca", data = training)
+  
+  out[i] <- confusionMatrix(testing$classe, predict(modelFit3, testing))$overall[1]
+  
+}
+
+```
+
+
+
+```{r, eval = FALSE}
+
+
+system.time(modelFit_test <- train(training$classe ~ ., method = "rf", preProcess = "pca", data = training))
+```
+
+```{r, eval = FALSE}
+test1 <- read.csv("pml-testing.csv")
+test2 <- test1[, c(!is.na(test1[1,]))]
+test2 <- test2[, c(!test2[1,] == "")]
+test2 <- test2[, -1]
+test2 <- test2[, -ncol(test2)]
+
+test_rp <- predict(modFit_rp, newdata = test2)
+
+test_rf <- predict(modFit_rf, newdata = test2)
+
+test_rf <- predict(modelFit2, newdata = test2)
+```
+
+test_rf
+
+B A B A A E D B A A B C B A E E A B B B
+
+From the pairwise scatterplot (see Fig. 1 in the Appendix) it was determined that variables like _cyl_, _disp_, _hp_, _drat_, _wt_, _vs_ and _am_ seem to have a relatively strong correlation with _mpg_. Additionally the boxplot of the variable _mpg_ as a function of transmission type (automatic or manual) (see Fig. 2 in the Appendix) showed that _mpg_ is greater when the transmission is manual.
+
+## Regression analysis
+
+First I tried a regression models based on one variable, the type of transmission:
+
+```{r}
+
+fit1 <- lm(mpg ~ factor(am), data = mtcars); kable(summary(fit1)$coef)
+```
+
+The coefficients showed that automatic cars get 17.15 mpg while those with a manual transmission get 7.24 more miles per gallon. The model only explained 36% of the variance, according to the R-Squared value. Then I tried two other models. The second model included weight and gross horsepower as predictors, while the third model included all of the variables available in the mtcars dataset. 
+
+```{r}
+fit2 <- update(fit1, mpg ~ factor(am) + wt + hp)
+fit3 <- update(fit1, mpg ~ factor(am) + cyl +  disp + hp + drat + wt  + qsec +  vs   
+               + gear  + carb)
+```
+
+The differences between the models were determined through the analysis of the variance with ANOVA:
+
+```{r, echo = FALSE}
+kable(anova(fit1, fit2, fit3)[1:6])
+```
+
+The second model had a very small p-value (3.7e-09). Using 0.05 as the type I error rate significance benchmark, the null hypothesis was rejected. There was a significant difference between the intial and the second model. The second model was preferred for explaining the relationship between MPG and the predictor variables (_am_, _wt_ and _hp_). The residuals plots for the second model showed that the observations for the Ford Pantera and the Chrysler Imperial had the greater values for standardized residuals and leverage (see Fig. 3 in the Appendix) 
+
+## Effect of automatic vs. manual transmission on MPG
+
+The boxplot created to examine the relationship between mpg and am type (see Fig. 2 in Appendix) showed that cars with manual transmission had better mpg compared with automatic transmission cars. To assess this hypothesis, I performed a statistical analysis using t-test:
+
+```{r, echo = FALSE}
+t.test(mpg ~ am, data = mtcars)
+```
+
+Given that the p-value was 0.001374, the null hypothesis was rejected. Therefore manual cars had greater MPG than automatic cars, assumming all other characteristics of auto cars and manual cars were the same.
+
+## Conclusion
+
+Based on the results obtained in the second regression model and the t-test it was concluded that cars with manual transmission had significantly greater MPG than cars with automatic transmission. The coefficients for the selected model are shown below:
+
+```{r, echo = FALSE}
+kable(summary(fit2)$coef)
+```
+
+
+### Appendix
+
+Fig. 1. Pairwise scatterplots. 
+
+```{r, echo = FALSE, fig.width = 4.5, fig.height = 4.5}
+par(mar = c(5, 4, 2, 2))
+pairs(mtcars)
+```
+
+Fig. 2. MPG as a function of transmision type.
+
+```{r, echo = FALSE, fig.width = 3.5, fig.height = 3.5}
+par(mar = c(5, 4, 2, 2))
+with(mtcars, plot(factor(am), mpg, xlab = "Transmision  (0 = automatic, 1 = manual)", 
+                  ylab = "MPG (miles / US gallon)"))
+```
+                  
+Fig. 3. Residuals plots.
+
+```{r, echo = FALSE}
+par(mfrow = c(2, 2))
+plot(fit3)
+```
