@@ -72,8 +72,8 @@ img {
 <h2>Summary</h2>
 <p>The goal of this project was to build a model to predict how the participants in the Human Activity Recognition (HAR) project (<a href="http://groupware.les.inf.puc-rio.br/har" class="uri">http://groupware.les.inf.puc-rio.br/har</a>) conducted a set of physical activities. The objective was to predict the manner (given as the <code>classe</code> variable in the dataset) in which the participants did the exercise. I assessed four different classification models (linear regression, recursive partition, randomForests and randomForests with PCA preprocessing). The randomForests with PCA preprocessing model was selected as the best given its high accuracy when evaluated on the test datasets. The result of a 10-fold crossvalidation to estimate out of sample error is also reported.</p>
 </div>
-<div id="exploratory-data-analysis" class="section level2">
-<h2>Exploratory data analysis</h2>
+<div id="model-fitting-and-classification" class="section level2">
+<h2>Model fitting and classification</h2>
 <p>First I read the data into R and removed variables that have NA’s or are not complete.</p>
 <pre class="r"><code>data1 &lt;- read.csv(&quot;pml-training.csv&quot;)
 data2 &lt;- data1[, c(!is.na(data1[1,]))]
@@ -150,7 +150,7 @@ cf_rp &lt;- confusionMatrix(testing$classe, predict(modFit_rp, testing))
 #cf_rf &lt;- confusionMatrix(testing$classe, predict(modFit_rf, testing))
 preds_rf2 &lt;- predict(modFit_rp, newdata = testing)
 cf_rf2 &lt;- confusionMatrix(testing$classe, predict(modFit_rf2, testing))</code></pre>
-<p>The models fitted using randomForests and randomForests with PCA preprocessing produced the highest accuracies. The first model had an accuracy of 99% on the test data set, while the second model had an accuracy of 86% (see below). Although the accuracy of the second randomForests model was lower than that of the first randomForest model, I preferred the randomForests model with PCA preprocessing over the other one in order to avoid a possible overfitting. The confusion matrix and the accuracy measures for the randomForests model with PCA preprocessing is shown below:</p>
+<p>The models fitted using randomForests and randomForests with PCA preprocessing produced the highest accuracies. The first model had an accuracy of 99% on the test data set, while the second model had an accuracy of 97% (see below). Although the accuracy of the second randomForests model was lower than that of the first randomForest model, I preferred the randomForests model with PCA preprocessing over the other one in order to avoid a possible overfitting. The confusion matrix and the accuracy measures for the randomForests model with PCA preprocessing is shown below:</p>
 <pre><code>## Confusion Matrix and Statistics
 ## 
 ##           Reference

@@ -8,7 +8,7 @@ output: html_document
 ## Summary
 The goal of this project was to build a model to predict how the participants in the Human Activity Recognition (HAR) project (http://groupware.les.inf.puc-rio.br/har) conducted a set of physical activities. The objective was to predict the manner (given as the `classe` variable in the dataset) in which the participants did the exercise. I assessed four different classification models (linear regression, recursive partition, randomForests and randomForests with PCA preprocessing). The randomForests with PCA preprocessing model was selected as the best given its high accuracy when evaluated on the test datasets. The result of a 10-fold crossvalidation to estimate out of sample error is also reported. 
 
-## Exploratory data analysis
+## Model fitting and classification
 
 First I read the data into R and removed variables that have NA's or are not complete.
 
@@ -67,7 +67,7 @@ preds_rf2 <- predict(modFit_rp, newdata = testing)
 cf_rf2 <- confusionMatrix(testing$classe, predict(modFit_rf2, testing))
 ```
 
-The models fitted using randomForests and randomForests with PCA preprocessing produced the highest accuracies. The first model had an accuracy of 99% on the test data set, while the second model had an accuracy of 86% (see below). Although the accuracy of the second randomForests model was lower than that of the first randomForest model, I preferred the randomForests model with PCA preprocessing over the other one in order to avoid a possible overfitting. The confusion matrix and the accuracy measures for the randomForests model with PCA preprocessing is shown below:  
+The models fitted using randomForests and randomForests with PCA preprocessing produced the highest accuracies. The first model had an accuracy of 99% on the test data set, while the second model had an accuracy of 97% (see below). Although the accuracy of the second randomForests model was lower than that of the first randomForest model, I preferred the randomForests model with PCA preprocessing over the other one in order to avoid a possible overfitting. The confusion matrix and the accuracy measures for the randomForests model with PCA preprocessing is shown below:  
 
 ```{r cache = TRUE, echo = FALSE, warning = FALSE}
 confusionMatrix(testing$classe, predict(modFit_rf2, testing))
