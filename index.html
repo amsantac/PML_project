@@ -74,7 +74,11 @@ img {
 </div>
 <div id="exploratory-data-analysis" class="section level2">
 <h2>Exploratory data analysis</h2>
-<p>First I read the data into R and removed variables that have NA’s or are not complete:</p>
+<p>First I read the data into R and removed variables that have NA’s or are not complete.</p>
+<pre class="r"><code>data1 &lt;- read.csv(&quot;pml-training.csv&quot;)
+data2 &lt;- data1[, c(!is.na(data1[1,]))]
+data2 &lt;- data2[, c(!data2[1,] == &quot;&quot;)]
+data2 &lt;- data2[, -c(1,2,5,6)]</code></pre>
 <p>Then, given the large size of the data, I decided to compress the data using principal components analysis:</p>
 <pre class="r"><code>prComp &lt;- prcomp(data2[, -ncol(data2)])
 library(knitr)
@@ -123,31 +127,61 @@ kable(summary(prComp)$importance[,1:6])</code></pre>
 </table>
 <p>According to the results, the first two components respond for almost all the variability. Then I proceeded to partition the data into a training set (60% of data) and a test data set, that will be splitted later for creating a validation data set.</p>
 <pre class="r"><code>set.seed(3330)
-library(caret)</code></pre>
-<pre><code>## Loading required package: lattice
-## Loading required package: ggplot2</code></pre>
-<pre class="r"><code>inTrain &lt;- createDataPartition(y=data2$classe, p=0.6, list=FALSE)
+library(caret)
+inTrain &lt;- createDataPartition(y=data2$classe, p=0.6, list=FALSE)
 training &lt;- data2[inTrain,]
 testing &lt;- data2[-inTrain,]</code></pre>
 <p>For the classification of the data, I evaluated several methods including linear regression (lm), recursive partitioning (rpart), randomForests (rf) and ramdomForests with PCA preprocessing (pca).</p>
-<pre class="r"><code>modFit_lm &lt;- train(classe ~ ., method = &quot;lm&quot;, data = training)
-modFit_rp &lt;- train(classe ~ ., method = &quot;rpart&quot;, data = training)
-modFit_rf &lt;- train(classe ~ ., method = &quot;rf&quot;, data = training)
+<pre class="r"><code>#modFit_lm &lt;- train(classe ~ ., method = &quot;lm&quot;, data = training)
+modFit_rp &lt;- train(classe ~ ., method = &quot;rpart&quot;, data = training)</code></pre>
+<pre><code>## Loading required package: rpart</code></pre>
+<pre class="r"><code>#modFit_rf &lt;- train(classe ~ ., method = &quot;rf&quot;, data = training)
 modFit_rf2 &lt;- train(training$classe ~ ., method = &quot;rf&quot;, preProcess = &quot;pca&quot;, data = training)</code></pre>
 <p>For testing the models, I created a partition in the testing data set to obtain a test data set (50% of the data) and a validation data set.</p>
 <pre class="r"><code>inTest &lt;- createDataPartition(y=testing$classe, p=0.5, list=FALSE)
 testing &lt;- testing[inTest,]
 validation &lt;- testing[-inTest,]</code></pre>
 <p>Then I evaluated the fit of each of the models by evaluating the <code>predict</code> function on the test data set. The confusion matrix was calculated to determine the accuracy of the models in order to compare among them and select the model with the highest accuracy.</p>
-<pre class="r"><code>preds_lm &lt;- predict(modFit_lm, newdata = testing)
-cf_lm &lt;- confusionMatrix(testing$classe, predict(modFit_lm, testing))
+<pre class="r"><code>#preds_lm &lt;- predict(modFit_lm, newdata = testing)
+#cf_lm &lt;- confusionMatrix(testing$classe, predict(modFit_lm, testing))
 preds_rp &lt;- predict(modFit_rp, newdata = testing)
 cf_rp &lt;- confusionMatrix(testing$classe, predict(modFit_rp, testing))
-preds_rf &lt;- predict(modFit_rf, newdata = testing)
-cf_rf &lt;- confusionMatrix(testing$classe, predict(modFit_rf, testing))
+#preds_rf &lt;- predict(modFit_rf, newdata = testing)
+#cf_rf &lt;- confusionMatrix(testing$classe, predict(modFit_rf, testing))
 preds_rf2 &lt;- predict(modFit_rp, newdata = testing)
 cf_rf2 &lt;- confusionMatrix(testing$classe, predict(modFit_rf2, testing))</code></pre>
 <p>The models fitted using randomForests and randomForests with PCA preprocessing produced the highest accuracies. The first model had an accuracy of 99% on the test data set, while the second model had an accuracy of 86% (see below). Although the accuracy of the second randomForests model was lower than that of the first randomForest model, I preferred the randomForests model with PCA preprocessing over the other one in order to avoid a possible overfitting. The confusion matrix and the accuracy measures for the randomForests model with PCA preprocessing is shown below:</p>
+<pre><code>## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction    A    B    C    D    E
+##          A 1099    5    6    5    1
+##          B   15  732   11    1    0
+##          C    2   13  659    9    1
+##          D    0    0   25  617    1
+##          E    0    4    4    9  704
+## 
+## Overall Statistics
+##                                           
+##                Accuracy : 0.9715          
+##                  95% CI : (0.9657, 0.9764)
+##     No Information Rate : 0.2845          
+##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16       
+##                                           
+##                   Kappa : 0.9639          
+##  Mcnemar's Test P-Value : 0.0001923       
+## 
+## Statistics by Class:
+## 
+##                      Class: A Class: B Class: C Class: D Class: E
+## Sensitivity            0.9848   0.9708   0.9348   0.9626   0.9958
+## Specificity            0.9939   0.9915   0.9922   0.9921   0.9947
+## Pos Pred Value         0.9848   0.9644   0.9635   0.9596   0.9764
+## Neg Pred Value         0.9939   0.9930   0.9858   0.9927   0.9991
+## Prevalence             0.2845   0.1922   0.1797   0.1634   0.1802
+## Detection Rate         0.2801   0.1866   0.1680   0.1573   0.1795
+## Detection Prevalence   0.2845   0.1935   0.1744   0.1639   0.1838
+## Balanced Accuracy      0.9894   0.9812   0.9635   0.9773   0.9952</code></pre>
 <p>The out of sample error, also known as the generalization error, is the error expected to be obtained on a new data set, in this case, the validation data set. To assess the out of sample error and estimate the error with cross-validation I used the validation data set created previously. With the selected model, <code>modFit_rf2</code>, I conducted a 10-fold crossvalidation using partitions of the validation data set. The classifier (i.e., randomForests with PCA preprocessing) was trained in each partition of the validation data set and a confusion matrix was created through the evaluation of the fitted model on the corresponding test data set for each partition:</p>
 <pre class="r"><code>inTest &lt;- createDataPartition(y=testing$classe, p=0.5, list=FALSE)
 testing &lt;- testing[inTest,]
@@ -157,7 +191,7 @@ inValid &lt;- createDataPartition(validation$classe, 10, p = 0.6)
 
 out &lt;- list()
 
-for (i in 1:length(validDS)){
+for (i in 1:length(inValid)){
   training &lt;- validation[inValid[[i]],]
   testing &lt;- validation[-inValid[[i]],]
   modelFit3 &lt;- train(training$classe ~ ., method = &quot;rf&quot;, preProcess = &quot;pca&quot;, data = training)
@@ -165,10 +199,11 @@ for (i in 1:length(validDS)){
 }</code></pre>
 <p>The error for each partition of the validation data set was calculated as 1 minus the accuracy. The estimated errors were then averaged to estimate the out of sample error.</p>
 <pre class="r"><code>mean(1 - unlist(out))</code></pre>
+<pre><code>## [1] 0.2930769</code></pre>
 </div>
 <div id="conclusion" class="section level2">
 <h2>Conclusion</h2>
-<p>I selected the randomForests with PCA preprocessing model as the best one given its high accuracy when evaluated on the test datasets. The out of sample error is estimated to be about 20%.</p>
+<p>I selected the randomForests with PCA preprocessing model as the best one given its high accuracy when evaluated on the test datasets. The out of sample error is estimated to be about 29%.</p>
 </div>
 
 
